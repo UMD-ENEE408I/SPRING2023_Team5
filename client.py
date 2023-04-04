@@ -4,22 +4,36 @@
 import socket 
 import time
 
-server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.bind(("192.168.0.142", 5656))
-server.listen()
+localIP = "192.168.2.10"
+localPort = 3333
 
-connection, address = server.accept()
-print(f"[NEW CONNECTION] {address} connected.")
-file_name = connection.recv(1024).decode()
-print(f"[RECV] Receiving the filename.")
-file = open("data.txt", "w")
-data = connection.recv(1024).decode()
-time.sleep(2)
-connection.send("Filename received.".encode())
-print(f"[RECV] Receiving the file data.")
-file.write(data)
-time.sleep(2)
-connection.send("File data received".encode())
-file.close()
-connection.close()
-print(f"[DISCONNECTED] {address} disconnected.")
+mice1_address = 1111
+mice2_address = 2222
+highIntensity1 = str.encode("Value of Intensity")
+highIntensity2 = str.encode("Value of intensity")
+
+UDPServerSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+UDPServerSocket.bind((localIP, localPort))
+print("UDP server up and listening")
+while(True):
+    # If condition true, start receiving data
+    #x = UDPServerSocket.recvfrom(xSize)
+    #y = UDPServerSocket.recvfrom(ySize)
+    #z = UDPServerSocket.recvfrom(zSize)
+    #x_coordinate = x[0]
+    # x_address = x[1]
+    #y_coordinate = y[0]
+    # x_address = y[1]
+    #z_coordinate = z[0]
+    # x_address = z[1]
+    #address = bytesAddressPair[1]
+    #clientMsg = "X Coordinate:{}".format(x_coordinate)
+    #print(clientMsg)
+    #clientMsg = "Y Coordinate:{}".format(y_coordinate)
+    #print(clientMsg)
+    #clientMsg = "Z Coordinate:{}".format(z_coordinate)
+    #print(clientMsg)
+
+    # Do computation to calculate V, theta, etc and send data back to robots motor
+    UDPServerSocket.sendto(highIntensity1, mice1_address) #<--- Sends Data to mice 1
+    UDPServerSocket.sendto(highIntensity2, mice2_address) #<--- Sends Data to mice 2
