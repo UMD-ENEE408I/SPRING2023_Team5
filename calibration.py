@@ -3,7 +3,7 @@ import cv2
 import glob
 
 # termination criteria
-criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 28, 0.001)
 
 # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
 objp = np.zeros((6*9,3), np.float32)
@@ -36,13 +36,9 @@ for fname in images:
 
 cv2.destroyAllWindows()
 ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1],None,None)
+print(cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1],None,None))
 img = cv2.imread('test1.jpg')
 h,  w = img.shape[:2]
-newcameramtx, roi=cv2.getOptimalNewCameraMatrix(mtx,dist,(w,h),1,(w,h))
-# undistort
-dst = cv2.undistort(img, mtx, dist, None, newcameramtx)
-
+dst = cv2.undistort(img, mtx, dist, None, mtx)
 # crop the image
-x,y,w,h = roi
-dst = dst[y:y+h, x:x+w]
 cv2.imwrite('final.jpg',dst)
