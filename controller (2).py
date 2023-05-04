@@ -110,7 +110,7 @@ def real_filt(data): #reads and filters real time sound within bw
 		return False
 		
 def realtime_sound():
-		
+	p = pyaudio.PyAudio()
 	stream_real = p.open(format=FORMAT,
 		channels=CHANNELS,
 		rate=RATE,
