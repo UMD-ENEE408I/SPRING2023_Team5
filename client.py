@@ -19,16 +19,10 @@ import socket
 localIP = ''
 localPort = 3333
 localAny = "0.0.0.0"
-
-global m1_address
-global m2_address
-global m1_port
-global m2_port
-global m1_theta
-global m2_theta
-global m1_sendtheta
-global m2_sendtheta
-global moving 
+zeros = (0,0)
+address = list(zeros) #Keeps track of respective robots ip address
+port = list(zeros) #Keeps track of respective robots ip port
+#theta = [0] * 2 #Keeps track of respective robots target_theta
 
 #---------------------------------------- PYAUDIO CODE
 p = pyaudio.PyAudio()
@@ -47,16 +41,12 @@ THRESH = 500
 global test_val
 global max_y
 global keep_going
-global spin
-start = "1"
-target_v = "0"
-spin = "1"
 test_val = 0
 max_y = 0
 keep_going = True
 #----------------------------------------
 
-initialize = "1"
+initialize = "5"
 
 UDPServerSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP) #Creates UDP socket
 UDPServerSocket.bind((localAny, localPort))
@@ -65,54 +55,48 @@ print("UDP server up and listening")
 
 #-----------------------------------------------
 stream_real = p.open(format=FORMAT,
-                    channels=CHANNELS,
-                    rate=RATE,
-                    input=True)#,
-                    #frames_per_buffer=CHUNK)
+					channels=CHANNELS,
+					rate=RATE,
+					input=True)#,
+					#frames_per_buffer=CHUNK)
 #-----------------------------------------------
-                  
-def get_address():
-    counter = 0
-    while counter < 2:
-        (mice, address) = UDPServerSocket.recvfrom(1024)
-        if mice.decode() == "mice1":
-            m1_address = address[0]
-            m1_port = address[1]
-            UDPServerSocket.sendto(initialize.encode(), (m1_address, m1_port))
-            counter = counter + 1
-            print('Mice 1 Connected!!!\n')
+				  
+def get_address(mice):
+	global address; global port
+	(mice, addr) = UDPServerSocket.recvfrom(1024)
+	while mice.decode() != "mice1":
+		(mice, addr) = UDPServerSocket.recvfrom(1024)
 
-        elif mice.decode() == "mice2":
-            m2_address = address[0]
-            m2_port = address[1]
-            UDPServerSocket.sendto(initialize.encode(), (m2_address, m2_port))
-            counter = counter + 1
-            print('Mice 2 Connected!!!')
+	if mice.decode() == "mice1":
+		mice = mice.decode()
+		address[0] = addr[0]
+		port[0] = addr[1]
+		print('Mice 1 Connected!!!')
+	elif mice.decode() == "mice2":
+		mice = mice.decode()
+		address[1] = addr[0]
+		port[1] = addr[1]
+		print('Mice 2 Connected!!!')
 
 def send(theta, m_address, m_port):
-    UDPServerSocket.sendto(theta.encode(), (m_address, m_port))
+	UDPServerSocket.sendto(theta.encode(), (m_address, m_port))
 
-def receive():
-    while True:
-        msg1 = UDPServerSocket.recvfrom(1024)
-        if msg1[1] == m1_address:
-            print(msg1[0].decode() + "\n")
-        elif msg1[1] == m1_address:
-            print(msg1[0].decode() + "\n")
+def receive(message):
+	global address
+	(message, address) = UDPServerSocket.recvfrom(1024)
+	#if adr == address[0]:
+	message = message.decode()
+	#print("Mice 1: " + mssg + "\n")
 
 def record():
-    stream = p.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK)
-
-    print("*recording")
-
+	stream = p.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK)
+	print("*recording")
 	frames = []
-
 	for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
-        data = stream.read(CHUNK)
-        frames.append(data)
-
-	print("* done recording")
-
+		data = stream.read(CHUNK)
+		frames.append(data)
+		 
+	print("*done recording")
 	stream.stop_stream()
 	stream.close()
 	p.terminate()
@@ -128,16 +112,17 @@ def record():
 	return audio
 
 def butter_bandpass(cutoff, fs, order): #function to initialize butterworth filter
-    return butter(order, cutoff, btype='bandpass', analog=False, output = 'ba', fs=fs)
+	return butter(order, cutoff, btype='bandpass', analog=False, output = 'ba', fs=fs)
 
 def butter_bandpass_filter(data, cutoff, fs, order):
+	global test_val
 	b, a = butter_bandpass(cutoff, fs, order)
 	y = filtfilt(b, a, data)
 	test_val = max(y)
 	return y
 
 def real_filt(data): #reads and filters real time sound within bw
-	
+	global max_y; global keep_going
 	# get and convert the data to float
 	audio_data = np.frombuffer(data, np.int16)
 
@@ -154,7 +139,7 @@ def real_filt(data): #reads and filters real time sound within bw
 		return False
 
 def realtime_sound():
-		
+	global keep_going
 	stream_real.start_stream()
 
 	while keep_going:
@@ -174,7 +159,7 @@ def realtime_sound():
 			keep_going=False
 		except:
 			pass
-        
+		
 	#once the threshold is met then just quit I think? I don't think we need to keep that data, just tell bot to stop moving
 	stream_real.stop_stream()
 	stream_real.close()
@@ -211,25 +196,70 @@ def plot(data, choice):
 		plt.xlabel("Time")
 
 def locate():
-	if(spin == "1")
-		send(spin, m1_address, m1_port)
-		sound_data = record()
-    	y = butter_bandpass_filter(sound_data, cutoff, RATE, order)
-    	m1_theta = find_sound(y, RATE, speed)
-    	send(m1_theta, m1_address, m1_port)
-	elif(spin == "0")
-		send(m1_theta, m1_address, m1_port)
+	global address; global port
 
-	if(keep_going == False):
-		send(target_v, m1_address, m1_port)
-	elif(keep_going == True):
-		realtime_sound()
+	state = '0'
+	msg = '0'
+	receivee = '0'
+	micee = 'm'
+	msgg = '0'
 
-x1 = threading.Thread(target = get_address)
-x2 = threading.Thread(target = send)
+	(micee, addr) = UDPServerSocket.recvfrom(1024)
+
+	while receivee != "1" and micee != "mice1":
+		while micee.decode() != "mice1":
+			(micee, addr) = UDPServerSocket.recvfrom(1024)
+
+		if micee.decode() == "mice1":
+			micee = micee.decode()
+			address[0] = addr[0]
+			port[0] = addr[1]
+			print('Mice 1 Connected!!!')
+
+
+		#get_address(micee)
+		send(initialize, address[0], port[0])
+		receive(receivee)
+
+		print("Receive:")
+		print(receivee)
+		print("MICE:")
+		print(micee)
+
+		if(receivee == "1" and micee == "mice1"):
+			print("***STEP 1***")
+
+
+	while msg != "1" and msgg != "5":
+		send(state, address[0], port[0])
+		receive(msg)
+		send(initialize, address[0], port[0])
+		receive(msgg)
+		
+		if msg == "1" and msgg == "5":
+			print("***STEP 2***")
+	
+	print("***STEP 3***\n")
+
+	sound_data = record()
+	y = butter_bandpass_filter(sound_data, cutoff, RATE, order)
+	theta = find_sound(y, RATE, speed)
+
+	msg = "0"
+	msgg = "0"
+	while msg != "1" and msgg != "5":
+		send(theta, address[0], port[0])
+		receive(msg)
+		send(initialize, address[0], port[0])
+		receive(msgg)
+		
+		if msg == "1" and msgg == "5":
+			print("***STEP 4***")
+
+
+#x1 = threading.Thread(target = get_address)
+#x2 = threading.Thread(target = send)
 x3 = threading.Thread(target = locate)
 
-x1.start()
-time.sleep(2)
-x2.start()
+#x1.start()
 x3.start()
