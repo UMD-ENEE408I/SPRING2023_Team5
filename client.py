@@ -16,6 +16,20 @@ from scipy.signal import butter, lfilter, freqz, filtfilt
 from scipy.fft import fft, fftfreq
 import socket 
 
+global CHUNK
+global FORMAT
+global CHANNELS
+global RATE
+global order
+global cutoff
+global speed
+global RECORD_SECONDS
+global THRESH
+global test_val
+global max_y
+global keep_going
+global WAVE_OUTPUT_FILENAME
+
 localIP = ''
 localPort = 3333
 localAny = "0.0.0.0"
@@ -25,22 +39,11 @@ port = list(zeros) #Keeps track of respective robots ip port
 #theta = [0] * 2 #Keeps track of respective robots target_theta
 
 #---------------------------------------- PYAUDIO CODE
-p = pyaudio.PyAudio()
-CHUNK = 1024
-FORMAT = pyaudio.paInt16
-# need to change to 2 for surface mic, 1 for wireless
-CHANNELS = 1
-RATE = 44100
 
-WAVE_OUTPUT_FILENAME = "output.wav"
 order = 4
 cutoff = (1300, 1600)
 speed = 1.57
-RECORD_SECONDS = 1
 THRESH = 500
-global test_val
-global max_y
-global keep_going
 test_val = 0
 max_y = 0
 keep_going = True
@@ -53,12 +56,6 @@ UDPServerSocket.bind((localAny, localPort))
 
 print("UDP server up and listening")
 
-#-----------------------------------------------
-stream_real = p.open(format=FORMAT,
-					channels=CHANNELS,
-					rate=RATE,
-					input=True)#,
-					#frames_per_buffer=CHUNK)
 #-----------------------------------------------
 				  
 def get_address(mice):
@@ -89,6 +86,15 @@ def receive(message):
 	#print("Mice 1: " + mssg + "\n")
 
 def record():
+	p = pyaudio.PyAudio()
+	CHUNK = 1024
+	FORMAT = pyaudio.paInt16
+	# need to change to 2 for surface mic, 1 for wireless
+	CHANNELS = 1
+	RATE = 44100
+	WAVE_OUTPUT_FILENAME = "output.wav"
+	RECORD_SECONDS = 3
+
 	stream = p.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK)
 	print("*recording")
 	frames = []
@@ -140,7 +146,13 @@ def real_filt(data): #reads and filters real time sound within bw
 
 def realtime_sound():
 	global keep_going
-	stream_real.start_stream()
+	p = pyaudio.PyAudio()
+	stream_real = p.open(format=FORMAT,
+		channels=CHANNELS,
+		rate=RATE,
+		input=True,
+		frames_per_buffer=CHUNK)
+	stream_real.start_stream
 
 	while keep_going:
 		if(max_y >= THRESH): # Change threshold value here
@@ -163,7 +175,7 @@ def realtime_sound():
 	#once the threshold is met then just quit I think? I don't think we need to keep that data, just tell bot to stop moving
 	stream_real.stop_stream()
 	stream_real.close()
-	#p.terminate()     
+	p.terminate()     
 
 def find_sound(data, fs, speed):
 	data_ls = data.tolist()
